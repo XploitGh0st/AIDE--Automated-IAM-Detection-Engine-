@@ -1,0 +1,25 @@
+# AIDE - Automated IAM Detection Engine
+# Requirements
+
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Web Framework
+streamlit>=1.29.0
+
+# AI Integration
+google-generativeai>=0.3.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Data Processing
+pandas>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.0
+pyyaml>=6.0.0
+
+# Environment Variables
+python-dotenv>=1.0.0
