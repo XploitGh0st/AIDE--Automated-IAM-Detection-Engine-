@@ -159,19 +159,21 @@ export function AppLayout({ children }: AppLayoutProps) {
               onClick={handleScan}
               disabled={isScanning || !account?.connected}
               className={cn(
-                "aide-btn-primary",
+                "aide-btn aide-btn-primary",
                 (isScanning || !account?.connected) && "opacity-50 cursor-not-allowed"
               )}
+              aria-label={isScanning ? 'Scanning in progress' : 'Run a new scan'}
+              title={account?.connected ? 'Run a new scan' : 'Connect AWS in Settings to enable scanning'}
             >
               {isScanning ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Scanning...
+                  <span>Scanning...</span>
                 </>
               ) : (
                 <>
                   <Scan className="w-4 h-4" />
-                  Run New Scan
+                  <span>Run New Scan</span>
                 </>
               )}
             </button>

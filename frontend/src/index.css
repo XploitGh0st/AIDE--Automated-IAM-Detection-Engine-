@@ -109,6 +109,13 @@
     color: #a3a3a3;
   }
 
+  /* Simple indeterminate progress */
+  @keyframes progress {
+    0% { transform: translateX(-50%); }
+    50% { transform: translateX(50%); }
+    100% { transform: translateX(150%); }
+  }
+
   .aide-btn-ghost:hover {
     color: #f5f5f5;
     background-color: #262626;

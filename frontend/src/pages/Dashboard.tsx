@@ -16,12 +16,13 @@ import { KPICard, ActionCard, Card } from '@/components/ui'
 import { LoadingState, ErrorState } from '@/components/ui/States'
 import { formatTimeAgo } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
-import { useFindings, useStartScan } from '@/hooks/useApi'
+import { useFindings, useStartScan, useAccountInfo } from '@/hooks/useApi'
 
 export function Dashboard() {
   const navigate = useNavigate()
   const { data: findings = [], isLoading, error, refetch } = useFindings()
   const { mutate: startScan, isPending: isScanning } = useStartScan()
+  const { data: account } = useAccountInfo()
   const [lastScanResult, setLastScanResult] = useState<{status: string; error?: string} | null>(null)
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length
@@ -100,19 +101,21 @@ export function Dashboard() {
             Run your first scan to discover security vulnerabilities.
           </p>
           <button
+            aria-label="Scan your AWS account"
             onClick={() => handleScan('full')}
             disabled={isScanning}
-            className="aide-btn-primary text-lg px-6 py-3"
+            className={`aide-btn aide-btn-primary text-lg px-6 py-3 ${isScanning ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isScanning ? 'Scanning in progress' : 'Scan your AWS account'}
           >
             {isScanning ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Scanning AWS...
+                <span>Scanning AWS...</span>
               </>
             ) : (
               <>
                 <Scan className="w-5 h-5" />
-                Scan Your AWS Account
+                <span>Scan Your AWS Account</span>
               </>
             )}
           </button>
@@ -142,12 +145,28 @@ export function Dashboard() {
             </p>
           </Card>
         </div>
+        <div className="flex justify-center">
+          <button
+            className="aide-btn aide-btn-secondary"
+            onClick={() => navigate('/settings')}
+            aria-label="Open settings to configure AWS credentials"
+          >
+            Configure AWS Access
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Top progress line during scan */}
+      {isScanning && (
+        <div className="h-1 w-full rounded-full bg-cyan-500/40 overflow-hidden">
+          <div className="h-full w-1/2 bg-cyan-400 animate-[progress_1.2s_linear_infinite]"></div>
+        </div>
+      )}
+
       {/* Scan Status Alert */}
       {isScanning && (
         <div className="aide-card p-4 border-cyan-900/50 bg-cyan-950/20">
@@ -192,6 +211,9 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {account ? (
+            <span className="text-xs text-aide-text-muted font-mono">{account.accountId || 'No account'}</span>
+          ) : null}
           <span className="text-2xl font-bold text-aide-text-primary">
             {criticalCount + highCount + mediumCount + lowCount}
           </span>
