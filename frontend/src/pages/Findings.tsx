@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Filter, ChevronDown, Copy, Check } from 'lucide-react'
+import { Search, Filter, Copy, Check } from 'lucide-react'
 import { Badge, Card } from '@/components/ui'
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States'
 import { 
@@ -12,8 +12,8 @@ import {
 import { FindingDetailDrawer } from '@/components/findings/FindingDetailDrawer'
 import { useAppStore } from '@/store/appStore'
 import { useFindings } from '@/hooks/useApi'
-import { formatTimeAgo, truncateMiddle, copyToClipboard, cn } from '@/lib/utils'
-import { Finding, Severity, AWSService } from '@/types'
+import { formatTimeAgo, truncateMiddle, copyToClipboard } from '@/lib/utils'
+import { Severity, AWSService } from '@/types'
 
 export function Findings() {
   const { filters, setFilters, openDrawer, isDrawerOpen, selectedFinding, closeDrawer } = useAppStore()
@@ -75,7 +75,7 @@ export function Findings() {
   if (findings.length === 0) {
     return <EmptyState 
       title="No findings yet"
-      description="Run a scan to discover security vulnerabilities in your AWS IAM configuration."
+      message="Run a scan to discover security vulnerabilities in your AWS IAM configuration."
     />
   }
 

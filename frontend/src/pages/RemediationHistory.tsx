@@ -1,6 +1,6 @@
 import { Check, RotateCcw, AlertCircle, Clock } from 'lucide-react'
 import { Card, Badge } from '@/components/ui'
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States'
+import { LoadingState, ErrorState } from '@/components/ui/States'
 import { useRemediationHistory } from '@/hooks/useApi'
 import { formatTimeAgo } from '@/lib/utils'
 

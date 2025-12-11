@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -7,10 +8,12 @@ import {
   Zap,
   FileText,
   Clock,
-  Loader2
+  Loader2,
+  CloudOff,
+  CheckCircle
 } from 'lucide-react'
-import { KPICard, ActionCard, Card, CardTitle } from '@/components/ui'
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/States'
+import { KPICard, ActionCard, Card } from '@/components/ui'
+import { LoadingState, ErrorState } from '@/components/ui/States'
 import { formatTimeAgo } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { useFindings, useStartScan } from '@/hooks/useApi'
@@ -19,6 +22,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const { data: findings = [], isLoading, error, refetch } = useFindings()
   const { mutate: startScan, isPending: isScanning } = useStartScan()
+  const [lastScanResult, setLastScanResult] = useState<{status: string; error?: string} | null>(null)
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length
   const highCount = findings.filter(f => f.severity === 'high').length
@@ -28,7 +32,7 @@ export function Dashboard() {
   // Get unique services from findings
   const services = [...new Set(findings.map(f => f.service))]
   
-  // Create a mock lastScan from findings data
+  // Derive last scan info from findings data
   const lastScan = {
     completedAt: findings.length > 0 ? new Date().toISOString() : null,
     totalResources: findings.length * 5, // Approximate
@@ -36,9 +40,14 @@ export function Dashboard() {
   }
 
   const handleScan = (type: 'full' | 'quick') => {
+    setLastScanResult(null)
     startScan(type, {
-      onSuccess: () => {
+      onSuccess: (result) => {
+        setLastScanResult({ status: result.status, error: result.error })
         refetch()
+      },
+      onError: (err) => {
+        setLastScanResult({ status: 'failed', error: err.message })
       }
     })
   }
@@ -51,8 +60,119 @@ export function Dashboard() {
     return <ErrorState message="Failed to load findings" onRetry={() => refetch()} />
   }
 
+  // Show empty state with prominent scan button if no findings
+  if (findings.length === 0 && !isScanning) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {/* Scan Error Alert */}
+        {lastScanResult?.status === 'failed' && (
+          <div className="aide-card p-4 border-red-900/50 bg-red-950/20">
+            <div className="flex items-start gap-3">
+              <CloudOff className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-medium text-red-300">AWS Connection Failed</h4>
+                <p className="text-xs text-aide-text-secondary mt-1">
+                  {lastScanResult.error || 'Could not connect to AWS. Please check your credentials.'}
+                </p>
+                <p className="text-xs text-aide-text-muted mt-2">
+                  Make sure your AWS credentials are configured correctly. You can use:
+                </p>
+                <ul className="text-xs text-aide-text-muted mt-1 list-disc list-inside">
+                  <li>AWS CLI profile (configure in Settings)</li>
+                  <li>Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)</li>
+                  <li>IAM role (if running on AWS)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Welcome Message */}
+        <div className="aide-card p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-950/50 flex items-center justify-center">
+            <ShieldAlert className="w-8 h-8 text-cyan-400" />
+          </div>
+          <h2 className="text-xl font-bold text-aide-text-primary mb-2">
+            Welcome to AIDE
+          </h2>
+          <p className="text-sm text-aide-text-secondary max-w-md mx-auto mb-6">
+            Automated IAM Detection Engine - AI-powered security scanner for AWS IAM policies.
+            Run your first scan to discover security vulnerabilities.
+          </p>
+          <button
+            onClick={() => handleScan('full')}
+            disabled={isScanning}
+            className="aide-btn-primary text-lg px-6 py-3"
+          >
+            {isScanning ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Scanning AWS...
+              </>
+            ) : (
+              <>
+                <Scan className="w-5 h-5" />
+                Scan Your AWS Account
+              </>
+            )}
+          </button>
+        </div>
+        
+        {/* Features Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4">
+            <ShieldAlert className="w-6 h-6 text-red-400 mb-3" />
+            <h3 className="text-sm font-medium text-aide-text-primary mb-1">9 Vulnerability Types</h3>
+            <p className="text-xs text-aide-text-muted">
+              Detects privilege escalation, wildcard admin, missing MFA, and more
+            </p>
+          </Card>
+          <Card className="p-4">
+            <Zap className="w-6 h-6 text-amber-400 mb-3" />
+            <h3 className="text-sm font-medium text-aide-text-primary mb-1">AI-Powered Remediation</h3>
+            <p className="text-xs text-aide-text-muted">
+              Get smart policy recommendations using Gemini AI
+            </p>
+          </Card>
+          <Card className="p-4">
+            <FileText className="w-6 h-6 text-cyan-400 mb-3" />
+            <h3 className="text-sm font-medium text-aide-text-primary mb-1">One-Click Fixes</h3>
+            <p className="text-xs text-aide-text-muted">
+              Apply remediations with Terraform or AWS CLI commands
+            </p>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Scan Status Alert */}
+      {isScanning && (
+        <div className="aide-card p-4 border-cyan-900/50 bg-cyan-950/20">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
+            <div>
+              <p className="text-sm text-aide-text-primary">Scanning AWS account...</p>
+              <p className="text-xs text-aide-text-muted">Analyzing IAM policies, roles, users, and resources</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {lastScanResult?.status === 'completed' && (
+        <div className="aide-card p-4 border-green-900/50 bg-green-950/20">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-400" />
+            <div>
+              <p className="text-sm text-aide-text-primary">Scan completed successfully</p>
+              <p className="text-xs text-aide-text-muted">Found {findings.length} security findings</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Status Header */}
       <div className="aide-card p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

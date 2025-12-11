@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Key, 
   Cloud, 
@@ -7,10 +7,13 @@ import {
   Database,
   Save,
   RefreshCw,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react'
-import { Card, CardTitle } from '@/components/ui'
+import { Card } from '@/components/ui'
+import { LoadingState } from '@/components/ui/States'
 import { cn } from '@/lib/utils'
+import { useSettings, useUpdateSettings, useHealthCheck } from '@/hooks/useApi'
 
 interface SettingSection {
   id: string
@@ -28,16 +31,46 @@ const sections: SettingSection[] = [
 
 export function Settings() {
   const [activeSection, setActiveSection] = useState('aws')
-  const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  
+  // Fetch current settings from API
+  const { data: settings, isLoading: isLoadingSettings } = useSettings()
+  const { data: health } = useHealthCheck()
+  const { mutate: updateSettings, isPending: isSaving } = useUpdateSettings()
+  
+  // Local form state
+  const [formData, setFormData] = useState({
+    awsProfile: 'default',
+    awsRegion: 'us-east-1',
+    multiRegionScanning: true,
+    assumeRoleArn: '',
+    geminiApiKey: '',
+  })
+  
+  // Sync form data with fetched settings
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        awsProfile: settings.awsProfile || 'default',
+        awsRegion: settings.awsRegion || 'us-east-1',
+        multiRegionScanning: settings.multiRegionScanning ?? true,
+        assumeRoleArn: settings.assumeRoleArn || '',
+        geminiApiKey: '', // Keep empty for security - don't display existing key
+      })
+    }
+  }, [settings])
 
   const handleSave = async () => {
-    setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    updateSettings(formData, {
+      onSuccess: () => {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      }
+    })
+  }
+  
+  if (isLoadingSettings) {
+    return <LoadingState message="Loading settings..." />
   }
 
   return (
@@ -113,6 +146,26 @@ export function Settings() {
               </div>
 
               <div className="space-y-6">
+                {/* Connection Status */}
+                <div className="p-4 rounded-aide bg-aide-bg-primary border border-aide-border-DEFAULT">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-3 h-3 rounded-full",
+                        health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'
+                      )} />
+                      <div>
+                        <p className="text-sm font-medium text-aide-text-primary">API Status</p>
+                        <p className="text-xs text-aide-text-muted">{health?.status === 'healthy' ? 'Connected' : 'Disconnected'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-aide-text-muted">Version: {health?.version || 'Unknown'}</p>
+                      <p className="text-xs text-aide-text-muted">Gemini AI: {health?.geminiConfigured ? 'Configured' : 'Not configured'}</p>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* AWS Profile */}
                 <div>
                   <label className="block text-sm font-medium text-aide-text-primary mb-2">
@@ -120,7 +173,8 @@ export function Settings() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="default"
+                    value={formData.awsProfile}
+                    onChange={(e) => setFormData(prev => ({ ...prev, awsProfile: e.target.value }))}
                     className="aide-input max-w-md"
                     placeholder="default"
                   />
@@ -134,11 +188,21 @@ export function Settings() {
                   <label className="block text-sm font-medium text-aide-text-primary mb-2">
                     Default Region
                   </label>
-                  <select className="aide-input max-w-md">
+                  <select 
+                    className="aide-input max-w-md"
+                    value={formData.awsRegion}
+                    onChange={(e) => setFormData(prev => ({ ...prev, awsRegion: e.target.value }))}
+                  >
                     <option value="us-east-1">US East (N. Virginia) - us-east-1</option>
+                    <option value="us-east-2">US East (Ohio) - us-east-2</option>
+                    <option value="us-west-1">US West (N. California) - us-west-1</option>
                     <option value="us-west-2">US West (Oregon) - us-west-2</option>
                     <option value="eu-west-1">EU (Ireland) - eu-west-1</option>
+                    <option value="eu-west-2">EU (London) - eu-west-2</option>
+                    <option value="eu-central-1">EU (Frankfurt) - eu-central-1</option>
                     <option value="ap-southeast-1">Asia Pacific (Singapore) - ap-southeast-1</option>
+                    <option value="ap-southeast-2">Asia Pacific (Sydney) - ap-southeast-2</option>
+                    <option value="ap-northeast-1">Asia Pacific (Tokyo) - ap-northeast-1</option>
                   </select>
                 </div>
 
@@ -150,8 +214,17 @@ export function Settings() {
                       Scan resources across all enabled AWS regions
                     </p>
                   </div>
-                  <button className="relative inline-flex h-6 w-11 items-center rounded-full bg-green-600 transition-colors">
-                    <span className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-6" />
+                  <button 
+                    onClick={() => setFormData(prev => ({ ...prev, multiRegionScanning: !prev.multiRegionScanning }))}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                      formData.multiRegionScanning ? 'bg-green-600' : 'bg-aide-bg-tertiary'
+                    )}
+                  >
+                    <span className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                      formData.multiRegionScanning ? 'translate-x-6' : 'translate-x-1'
+                    )} />
                   </button>
                 </div>
 
@@ -162,6 +235,8 @@ export function Settings() {
                   </label>
                   <input
                     type="text"
+                    value={formData.assumeRoleArn}
+                    onChange={(e) => setFormData(prev => ({ ...prev, assumeRoleArn: e.target.value }))}
                     className="aide-input"
                     placeholder="arn:aws:iam::123456789012:role/AIDESecurityAudit"
                   />
@@ -241,21 +316,33 @@ export function Settings() {
                   </label>
                   <input
                     type="password"
-                    defaultValue="••••••••••••••••••••"
+                    value={formData.geminiApiKey}
+                    onChange={(e) => setFormData(prev => ({ ...prev, geminiApiKey: e.target.value }))}
                     className="aide-input max-w-md"
-                    placeholder="Enter your Gemini API key"
+                    placeholder={settings?.geminiApiConfigured ? "••••••••••••••••••••" : "Enter your Gemini API key"}
                   />
                   <p className="mt-1.5 text-xs text-aide-text-muted">
                     Required for AI-powered remediation suggestions
                   </p>
+                  {settings?.geminiApiConfigured && (
+                    <p className="mt-1 text-xs text-green-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Gemini API key is configured
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-aide bg-amber-950/20 border border-amber-900/50">
-                  <p className="text-sm text-amber-300 font-medium">API Key Security</p>
-                  <p className="text-xs text-aide-text-secondary mt-1">
-                    Your API keys are encrypted at rest and never exposed in logs. 
-                    We recommend rotating keys every 90 days.
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-300 font-medium">API Key Security</p>
+                      <p className="text-xs text-aide-text-secondary mt-1">
+                        Your API keys are stored in the .env file on the server. 
+                        We recommend setting GEMINI_API_KEY in your environment variables.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>

@@ -1,14 +1,18 @@
 import { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   ShieldAlert, 
   History, 
   Settings, 
   Scan,
-  ChevronRight
+  ChevronRight,
+  Cloud,
+  CloudOff,
+  Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAccountInfo, useStartScan } from '@/hooks/useApi'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -23,10 +27,18 @@ const navigation = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { data: account, isLoading: isLoadingAccount } = useAccountInfo()
+  const { mutate: startScan, isPending: isScanning } = useStartScan()
 
   // Get current page title for breadcrumb
   const currentPage = navigation.find(item => item.href === location.pathname)
   const pageTitle = currentPage?.name || 'Dashboard'
+  
+  const handleScan = () => {
+    startScan('full')
+    navigate('/')
+  }
 
   return (
     <div className="flex h-screen bg-aide-bg-primary">
@@ -74,6 +86,39 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           {/* Footer */}
           <div className="px-3 py-4 border-t border-aide-border-DEFAULT">
+            {/* AWS Connection Status */}
+            <div className="aide-card p-3 mb-3">
+              {isLoadingAccount ? (
+                <div className="flex items-center gap-2 text-xs text-aide-text-muted">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Checking AWS...</span>
+                </div>
+              ) : account?.connected ? (
+                <>
+                  <div className="flex items-center gap-2 text-xs text-green-400">
+                    <Cloud className="w-3.5 h-3.5" />
+                    <span>AWS Connected</span>
+                  </div>
+                  <p className="mt-1 text-xxs text-aide-text-muted font-mono">
+                    {account.accountId}
+                  </p>
+                  <p className="text-xxs text-aide-text-muted">
+                    {account.region} · {account.profile}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-xs text-red-400">
+                    <CloudOff className="w-3.5 h-3.5" />
+                    <span>AWS Not Connected</span>
+                  </div>
+                  <p className="mt-1 text-xxs text-aide-text-muted">
+                    Configure credentials in Settings
+                  </p>
+                </>
+              )}
+            </div>
+            
             <div className="aide-card p-3">
               <div className="flex items-center gap-2 text-xs text-aide-text-muted">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -110,9 +155,25 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
 
             {/* Actions */}
-            <button className="aide-btn-primary">
-              <Scan className="w-4 h-4" />
-              Run New Scan
+            <button 
+              onClick={handleScan}
+              disabled={isScanning || !account?.connected}
+              className={cn(
+                "aide-btn-primary",
+                (isScanning || !account?.connected) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isScanning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Scanning...
+                </>
+              ) : (
+                <>
+                  <Scan className="w-4 h-4" />
+                  Run New Scan
+                </>
+              )}
             </button>
           </div>
         </header>

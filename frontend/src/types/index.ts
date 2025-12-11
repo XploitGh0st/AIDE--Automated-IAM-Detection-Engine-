@@ -52,6 +52,7 @@ export interface ScanResult {
   startedAt: string
   completedAt?: string
   status: 'running' | 'completed' | 'failed'
+  error?: string
   totalResources: number
   findings: {
     critical: number

@@ -13,7 +13,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from config import Priority, VULNERABILITY_TYPES, GEMINI_API_KEY
-from collector import AWSCollector, AWSCollectorError, generate_sample_data
+from collector import AWSCollector, AWSCollectorError
 from analyzer import PolicyAnalyzer, Finding as AnalyzerFinding
 from ai_engine import AIRemediationEngine, generate_sample_remediation
 from database import get_db_manager, DatabaseManager, Finding as DBFinding, Scan, Remediation
@@ -149,11 +149,34 @@ def health_check():
     })
 
 
+@app.route('/api/account', methods=['GET'])
+@handle_errors
+def get_account_info():
+    """Get AWS account information"""
+    try:
+        collector = AWSCollector()
+        account_id = collector.get_account_id()
+        return jsonify({
+            'accountId': account_id,
+            'region': collector.region,
+            'profile': collector.profile or 'default',
+            'connected': True,
+        })
+    except AWSCollectorError as e:
+        return jsonify({
+            'accountId': None,
+            'region': None,
+            'profile': None,
+            'connected': False,
+            'error': str(e),
+        })
+
+
 @app.route('/api/findings', methods=['GET'])
 @handle_errors
 def get_findings():
-    """Get all security findings from the most recent scan or run a new analysis"""
-    # First try to get findings from database
+    """Get all security findings from the most recent scan"""
+    # Get findings from database
     try:
         scans = db.get_all_scans(limit=1)
         if scans:
@@ -164,39 +187,19 @@ def get_findings():
     except Exception as e:
         print(f"Database error: {e}")
     
-    # If no database findings, generate from sample data
-    sample_data = generate_sample_data()
-    analyzer = PolicyAnalyzer(sample_data)
-    findings = analyzer.analyze_all()
-    
-    # Convert to API format
-    result = []
-    for i, finding in enumerate(findings):
-        api_finding = analyzer_finding_to_api(finding, f"sample-{i+1}")
-        result.append(api_finding)
-    
-    return jsonify(result)
+    # Return empty array if no findings - user needs to run a scan first
+    return jsonify([])
 
 
 @app.route('/api/findings/<finding_id>', methods=['GET'])
 @handle_errors
 def get_finding(finding_id: str):
     """Get a specific finding by ID"""
-    # Try to get from database first
+    # Try to get from database
     if finding_id.isdigit():
         db_finding = db.get_finding_by_id(int(finding_id))
         if db_finding:
             return jsonify(db_finding_to_api(db_finding))
-    
-    # If not found in database, try sample data
-    sample_data = generate_sample_data()
-    analyzer = PolicyAnalyzer(sample_data)
-    findings = analyzer.analyze_all()
-    
-    for i, finding in enumerate(findings):
-        fid = f"sample-{i+1}"
-        if fid == finding_id or finding.finding_id == finding_id:
-            return jsonify(analyzer_finding_to_api(finding, fid))
     
     return jsonify({'error': 'Finding not found'}), 404
 
@@ -231,13 +234,23 @@ def start_scan():
     active_scans[scan_id] = scan_state
     
     try:
-        # Try to collect from AWS
+        # Collect from AWS
         collector = AWSCollector()
         aws_data = collector.collect_all()
     except AWSCollectorError as e:
         print(f"AWS collection error: {e}")
-        # Fall back to sample data
-        aws_data = generate_sample_data()
+        # Update scan state to failed
+        scan_state.update({
+            'status': 'failed',
+            'error': str(e),
+            'completedAt': datetime.now().isoformat(),
+        })
+        if db_scan:
+            try:
+                db.complete_scan(scan_id, {'total': 0, 'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0})
+            except Exception as db_e:
+                print(f"Failed to update scan in database: {db_e}")
+        return jsonify(scan_state)
     
     # Analyze the data
     analyzer = PolicyAnalyzer(aws_data)
@@ -329,34 +342,16 @@ def get_scan_status(scan_id: str):
 def generate_remediation(finding_id: str):
     """Generate AI remediation for a finding"""
     
-    # Get the finding
+    # Get the finding from database
     finding_dict = None
     
-    # Try database first
     if finding_id.isdigit():
         db_finding = db.get_finding_by_id(int(finding_id))
         if db_finding:
             finding_dict = db_finding.to_dict()
     
-    # Try sample data
     if not finding_dict:
-        sample_data = generate_sample_data()
-        analyzer = PolicyAnalyzer(sample_data)
-        findings = analyzer.analyze_all()
-        
-        for i, finding in enumerate(findings):
-            fid = f"sample-{i+1}"
-            if fid == finding_id or finding.finding_id == finding_id:
-                finding_dict = finding.to_dict()
-                break
-    
-    if not finding_dict:
-        # Return sample remediation anyway for demo
-        finding_dict = {
-            'vulnerability_type': 'WILDCARD_ADMIN',
-            'affected_policy': {'Version': '2012-10-17', 'Statement': [{'Effect': 'Allow', 'Action': '*', 'Resource': '*'}]},
-            'resource_name': 'example-policy'
-        }
+        return jsonify({'error': 'Finding not found'}), 404
     
     # Try AI remediation if configured
     if GEMINI_API_KEY and GEMINI_API_KEY != 'your-gemini-api-key-here':
@@ -470,33 +465,8 @@ def get_remediation_history():
     except Exception as e:
         print(f"Error getting remediation history: {e}")
     
-    # Return sample data for demo
-    return jsonify([
-        {
-            'id': 'rem-001',
-            'findingId': 'sample-1',
-            'findingType': 'Privilege Escalation (PassRole + Compute)',
-            'resourceArn': 'arn:aws:iam::123456789012:user/service-account',
-            'severity': 'critical',
-            'originalPolicy': json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "*", "Resource": "*"}]}, indent=2),
-            'remediatedPolicy': json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetObject"], "Resource": "arn:aws:s3:::my-bucket/*"}]}, indent=2),
-            'appliedAt': (datetime.now()).isoformat(),
-            'appliedBy': 'security-admin',
-            'status': 'applied',
-        },
-        {
-            'id': 'rem-002',
-            'findingId': 'sample-2',
-            'findingType': 'Cross-Account Trust Misconfiguration',
-            'resourceArn': 'arn:aws:iam::123456789012:role/AdminRole',
-            'severity': 'high',
-            'originalPolicy': json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": "*"}, "Action": "sts:AssumeRole"}]}, indent=2),
-            'remediatedPolicy': json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::123456789012:root"}, "Action": "sts:AssumeRole", "Condition": {"StringEquals": {"sts:ExternalId": "secure-external-id"}}}]}, indent=2),
-            'appliedAt': (datetime.now()).isoformat(),
-            'appliedBy': 'automation',
-            'status': 'applied',
-        },
-    ])
+    # Return empty array if no remediation history
+    return jsonify([])
 
 
 @app.route('/api/dashboard/stats', methods=['GET'])
@@ -524,30 +494,15 @@ def get_dashboard_stats():
     except Exception as e:
         print(f"Database stats error: {e}")
     
-    # Generate stats from sample data
-    sample_data = generate_sample_data()
-    analyzer = PolicyAnalyzer(sample_data)
-    findings = analyzer.analyze_all()
-    
-    severity_counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
-    services = {}
-    
-    for finding in findings:
-        severity = priority_to_severity(finding.priority)
-        if severity in severity_counts:
-            severity_counts[severity] += 1
-        
-        service = extract_service(finding.resource_arn)
-        services[service] = services.get(service, 0) + 1
-    
+    # Return empty stats if no data in database
     return jsonify({
-        'totalFindings': len(findings),
-        'severityCounts': severity_counts,
-        'serviceBreakdown': services,
-        'lastScanAt': datetime.now().isoformat(),
-        'totalResourcesScanned': len(sample_data.get('users', [])) + len(sample_data.get('roles', [])) + len(sample_data.get('policies', [])),
+        'totalFindings': 0,
+        'severityCounts': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0},
+        'serviceBreakdown': {},
+        'lastScanAt': None,
+        'totalResourcesScanned': 0,
         'resolvedFindings': 0,
-        'openFindings': len(findings),
+        'openFindings': 0,
     })
 
 

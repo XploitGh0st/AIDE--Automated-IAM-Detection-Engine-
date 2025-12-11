@@ -3,6 +3,15 @@ import { Finding, ScanResult, RemediationRecord } from '@/types'
 
 const API_BASE = '/api'
 
+// Settings type
+export interface Settings {
+  awsProfile: string
+  awsRegion: string
+  multiRegionScanning: boolean
+  assumeRoleArn: string | null
+  geminiApiConfigured: boolean
+}
+
 // API Functions
 async function fetchFindings(): Promise<Finding[]> {
   const response = await fetch(`${API_BASE}/findings`)
@@ -51,6 +60,28 @@ async function applyRemediation(findingId: string): Promise<RemediationRecord> {
 async function fetchRemediationHistory(): Promise<RemediationRecord[]> {
   const response = await fetch(`${API_BASE}/remediation-history`)
   if (!response.ok) throw new Error('Failed to fetch remediation history')
+  return response.json()
+}
+
+async function fetchSettings(): Promise<Settings> {
+  const response = await fetch(`${API_BASE}/settings`)
+  if (!response.ok) throw new Error('Failed to fetch settings')
+  return response.json()
+}
+
+async function updateSettings(settings: Partial<Settings>): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/settings`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  })
+  if (!response.ok) throw new Error('Failed to update settings')
+  return response.json()
+}
+
+async function fetchHealthCheck(): Promise<{ status: string; version: string; geminiConfigured: boolean }> {
+  const response = await fetch(`${API_BASE}/health`)
+  if (!response.ok) throw new Error('Failed to check health')
   return response.json()
 }
 
@@ -128,5 +159,53 @@ export function useRemediationHistory() {
   return useQuery({
     queryKey: ['remediation-history'],
     queryFn: fetchRemediationHistory,
+  })
+}
+
+export function useSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: fetchSettings,
+  })
+}
+
+export function useUpdateSettings() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: updateSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+    },
+  })
+}
+
+export function useHealthCheck() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: fetchHealthCheck,
+  })
+}
+
+// Account info type
+export interface AccountInfo {
+  accountId: string | null
+  region: string | null
+  profile: string | null
+  connected: boolean
+  error?: string
+}
+
+async function fetchAccountInfo(): Promise<AccountInfo> {
+  const response = await fetch(`${API_BASE}/account`)
+  if (!response.ok) throw new Error('Failed to fetch account info')
+  return response.json()
+}
+
+export function useAccountInfo() {
+  return useQuery({
+    queryKey: ['account'],
+    queryFn: fetchAccountInfo,
+    retry: false, // Don't retry if AWS connection fails
   })
 }
