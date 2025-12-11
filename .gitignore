@@ -1,0 +1,238 @@
+# =============================================================================
+# AIDE - Automated IAM Detection Engine
+# Git Ignore Configuration
+# =============================================================================
+
+# =============================================================================
+# Python
+# =============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.local
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+
+# Environment variables (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+*.env
+
+# AWS credentials (NEVER commit these!)
+.aws/
+aws_credentials
+credentials.json
+
+# API Keys
+*.pem
+*.key
+secrets.yaml
+secrets.json
+
+# =============================================================================
+# Database
+# =============================================================================
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Keep the data directory structure
+!data/.gitkeep
+
+# =============================================================================
+# IDE & Editor
+# =============================================================================
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# =============================================================================
+# OS Generated Files
+# =============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# =============================================================================
+# Logs & Temporary Files
+# =============================================================================
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# =============================================================================
+# Node.js (for frontend)
+# =============================================================================
+
+# Dependencies (frontend has its own .gitignore but adding here for safety)
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# =============================================================================
+# Testing & Reports
+# =============================================================================
+
+# Test output
+test-results/
+test-output/
+*.test.log
+
+# Security scan reports (may contain sensitive data)
+scan_reports/
+security_reports/
+*.scan.json
+
+# =============================================================================
+# Miscellaneous
+# =============================================================================
+
+# Package lock files (optional - some teams prefer to commit these)
+# package-lock.json
+# yarn.lock
+
+# Documentation build
+docs/_build/
+
+# Terraform state (if using Terraform)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# CloudFormation outputs
+*.cfn.json
+*.cfn.yaml

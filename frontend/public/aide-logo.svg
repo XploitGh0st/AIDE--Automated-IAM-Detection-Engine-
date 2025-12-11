@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#525252" />
+      <stop offset="100%" style="stop-color:#262626" />
+    </linearGradient>
+  </defs>
+  <!-- Outer hexagon -->
+  <path d="M50 5 L90 27.5 L90 72.5 L50 95 L10 72.5 L10 27.5 Z" 
+        fill="url(#logo-gradient)" 
+        stroke="#404040" 
+        stroke-width="1.5"/>
+  <!-- Inner stylized 'A' -->
+  <path d="M50 20 L30 70 L38 70 L42 58 L58 58 L62 70 L70 70 L50 20 Z M45 50 L50 35 L55 50 L45 50 Z" 
+        fill="#f5f5f5"/>
+  <!-- Accent lines -->
+  <path d="M35 75 L50 82 L65 75" 
+        stroke="#737373" 
+        stroke-width="2" 
+        fill="none" 
+        stroke-linecap="round"/>
+</svg>

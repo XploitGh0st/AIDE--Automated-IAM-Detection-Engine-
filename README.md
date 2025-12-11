@@ -127,10 +127,23 @@ Required IAM permissions for the scanner:
 
 ### 4. Run the Application
 
+**Option A: Modern React Dashboard (Recommended)**
+```bash
+# Terminal 1 - Start the Flask API
+python api.py
+
+# Terminal 2 - Start React frontend
+cd frontend
+npm install
+npm run dev
+```
+- API: `http://localhost:5000`
+- Frontend: `http://localhost:3000`
+
+**Option B: Streamlit Dashboard (Legacy)**
 ```bash
 streamlit run app.py
 ```
-
 The dashboard will open at `http://localhost:8501`
 
 ## 🎭 Demo Mode
@@ -143,11 +156,52 @@ Don't have AWS credentials? AIDE includes a demo mode with sample data:
 
 This demonstrates all features without requiring AWS access.
 
+## 🖥️ Modern React Dashboard (New!)
+
+AIDE now includes a professional React-based dashboard with a modern monochrome design.
+
+### Running the Full Stack
+
+**Terminal 1 - Backend API:**
+```bash
+# From project root
+python api.py
+# API runs at http://localhost:5000
+```
+
+**Terminal 2 - React Frontend:**
+```bash
+# From frontend directory
+cd frontend
+npm install
+npm run dev
+# Frontend runs at http://localhost:3000
+```
+
+### Frontend Features
+
+- **Dashboard**: Overview with KPI cards showing critical/high/medium findings
+- **Findings Grid**: Sortable, filterable table of all security findings
+- **Detail Drawer**: Click any finding to see full details and policy code
+- **AI Remediation**: Generate AI-powered fixes with Terraform and AWS CLI code
+- **Remediation History**: Track all applied fixes
+- **Professional Design**: Monochrome enterprise theme
+
+### Frontend Tech Stack
+
+- React 18+ with TypeScript
+- Vite for fast development
+- Tailwind CSS with custom theme
+- TanStack Query for API state
+- Zustand for global state
+- Radix UI primitives
+
 ## 📁 Project Structure
 
 ```
 AIDE/
-├── app.py              # Streamlit dashboard
+├── api.py              # Flask REST API for React frontend
+├── app.py              # Streamlit dashboard (legacy)
 ├── collector.py        # AWS data collection
 ├── analyzer.py         # Vulnerability detection (9 rules)
 ├── ai_engine.py        # Gemini AI integration
@@ -156,7 +210,17 @@ AIDE/
 ├── utils.py            # Utility functions
 ├── requirements.txt    # Python dependencies
 ├── .env.example        # Environment template
+├── .gitignore          # Git ignore rules
 ├── data/               # SQLite database storage
+├── frontend/           # React TypeScript frontend
+│   ├── src/
+│   │   ├── components/ # UI components
+│   │   ├── pages/      # Page components
+│   │   ├── hooks/      # React Query hooks
+│   │   ├── store/      # Zustand state
+│   │   └── types/      # TypeScript types
+│   ├── package.json
+│   └── vite.config.ts
 └── README.md           # This file
 ```
 

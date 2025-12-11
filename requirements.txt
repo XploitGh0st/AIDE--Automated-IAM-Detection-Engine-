@@ -7,6 +7,8 @@ botocore>=1.34.0
 
 # Web Framework
 streamlit>=1.29.0
+flask>=3.0.0
+flask-cors>=4.0.0
 
 # AI Integration
 google-generativeai>=0.3.0

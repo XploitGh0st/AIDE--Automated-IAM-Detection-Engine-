@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AIDERequiredPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListUsers",
+        "iam:ListRoles", 
+        "iam:ListPolicies",
+        "iam:ListGroups",
+        "iam:GetUser",
+        "iam:GetRole",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListUserPolicies",
+        "iam:ListRolePolicies",
+        "iam:ListGroupPolicies",
+        "iam:ListAttachedUserPolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListAttachedGroupPolicies",
+        "iam:GetUserPolicy",
+        "iam:GetRolePolicy",
+        "iam:GetGroupPolicy",
+        "iam:ListAccessKeys",
+        "iam:GetAccessKeyLastUsed",
+        "iam:ListMFADevices",
+        "iam:GetAccountSummary",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport",
+        "iam:ListGroupsForUser",
+        "s3:ListAllMyBuckets",
+        "s3:GetBucketPolicy",
+        "ecr:DescribeRepositories", 
+        "ecr:GetRepositoryPolicy",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
